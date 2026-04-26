@@ -1,66 +1,63 @@
-# Pintos OS Kernel — Project 1: Threads
+# Pintos Operating System Kernel
 
-Implementation of core thread scheduling and synchronization in the
-Pintos educational OS kernel, written in C.  
+Implementation of core OS components in the Pintos educational operating system,
+including thread scheduling, synchronization, and user program support.  
 **Course:** CSE 421 — Operating Systems, University at Buffalo
 
-## Design Document
-[PA1 — Threads Design Document](./PA1_DesignDoc.pdf)
+## Overview
+This project covers three major OS subsystems built from scratch in C:
 
-## What Was Built
+- **Project 1 — Threads:** Alarm clock, priority scheduling, priority donation,
+  and MLFQ (Multi-Level Feedback Queue) scheduler
+- **Project 2 — User Programs:** Argument passing, system calls, process
+  management, and file descriptor isolation
 
-### Alarm Clock
-- Replaced busy-waiting `timer_sleep()` with thread blocking
-- Maintained a sorted `sleep_list` ordered by wake-up tick
-- Threads unblocked efficiently in `thread_tick()` to minimize
-  interrupt handler overhead
-
-### Priority Scheduling
-- Implemented priority-based thread selection across ready queue,
-  semaphore waiters, and condition variable waiters
-- Implemented priority donation to resolve priority inversion
-- Supported nested donation chains across multiple locks
-- Per-thread `hold_lock_list` tracks held locks for donation propagation
-- `block_lock` tracks what lock a thread is currently waiting on
-
-### MLFQ Scheduler (Advanced Scheduler)
-- Implemented `nice`, `recent_cpu`, and `load_avg` per Pintos BSD spec
-- Priority recalculated every 4 ticks, load average updated every second
-- Abstracted fixed-point arithmetic via `fixed_point_t` and
-  `fix_add`, `fix_sub`, `fix_mul`, `fix_div` functions
-
-## Key Data Structures
-```c
-struct thread {
-    int64_t wkup_ticks;         // Wake-up tick for sleeping threads
-    int priority;               // Current effective priority
-    int initial_priority;       // Base priority before donation
-    struct list hold_lock_list; // Locks currently held
-    struct lock *block_lock;    // Lock this thread is waiting on
-    int nice;                   // MLFQS niceness value
-    fixed_point_t recent_cpu;   // Recent CPU usage (fixed-point)
-};
-
-struct lock {
-    int lock_priority;          // Max priority among waiters
-    struct list_elem elem_lock; // For thread's lock list
-};
-
-static struct list sleep_list;  // Sorted list of sleeping threads
-fixed_point_t LoadAvg;          // System-wide load average
-```
-
-## Test Coverage
-| Category | Test Cases Owned |
-|----------|-----------------|
-| Priority Donation | priority-donate-one, donate-multiple, donate-multiple2, donate-nest, donate-sema, donate-lower, donate-chain |
-| Priority Scheduling | priority-sema, priority-condvar |
-| MLFQS | mlfqs-load-1, mlfqs-load-60, mlfqs-fair-2, mlfqs-nice-2, mlfqs-block |
+## Design Documents
+- [PA1 — Threads Design Document](./PA1_DesignDoc.pdf)
+- [PA2 — User Programs Design Document](./PA2_DesignDoc.pdf)
 
 ## Tech Stack
 - **Language:** C
 - **Platform:** Pintos (x86 educational OS)
 - **Tools:** GDB, QEMU, Make
+
+## Project 1 — Threads
+### Alarm Clock
+- Replaced busy-waiting with thread blocking using a sorted `sleep_list`
+- Threads unblocked in `thread_tick()` to minimize interrupt handler overhead
+
+### Priority Scheduling
+- Implemented priority donation to prevent priority inversion
+- Supported nested donation chains across multiple locks
+- Tracked per-thread `hold_lock_list` and `block_lock` for donation propagation
+
+### MLFQ Scheduler
+- Implemented `nice`, `recent_cpu`, and `load_avg` using fixed-point arithmetic
+- Priority recalculated every 4 ticks per thread, load average every second
+- Abstracted fixed-point math via `fixed_point_t` type and `fix_add/mul/div`
+
+## Project 2 — User Programs
+### Argument Passing
+- Used `strtok_r` to tokenize command-line arguments
+- Arguments pushed onto user stack in reverse order with proper word alignment
+
+### System Calls
+- Implemented: `exec`, `wait`, `exit`, `create`, `open`, `read`, `write`,
+  `close`, `remove`, `filesize`
+- Per-process `fd_table[128]` for isolated file descriptor management
+- Pointer validation via `validate_user_ptr()` and `validate_buffer()`
+  before any kernel memory access
+
+### Process Synchronization
+- Parent-child sync via `child_process` struct with semaphore
+- `wait()` blocks on semaphore until child signals via `sema_up` on exit
+
+## Test Results
+| Area | Test Cases |
+|------|-----------|
+| Alarm Clock | alarm-single, alarm-multiple, alarm-simultaneous, alarm-priority |
+| Priority Scheduling | priority-donate-one, donate-multiple, donate-nest, donate-chain |
+| MLFQS | mlfqs-load-1, mlfqs-fair-2, mlfqs-nice-2, mlfqs-block |
 
 ## Author
 Rishitha Saravanan Priya  
